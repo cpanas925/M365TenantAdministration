@@ -1,6 +1,20 @@
 ##Prerequisites
-
 Write-Host -ForegroundColor Blue "Setting up prerequisites for Microsoft Graph PowerShell SDK"
+
+# Check if the current session is running as Administrator
+Write-Host -ForegroundColor Blue "Checking administrative privileges..."
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if ($isAdmin) {
+    Write-Host -ForegroundColor Green "Running with Administrator privileges."
+}
+
+if (-not $isAdmin) {
+    Write-Host "Not running as Admin. Requesting elevation..." -ForegroundColor Yellow
+    Write-Host "Please run this script as Administrator." -ForegroundColor Red
+    Pause
+    Exit
+}
 
 # Get the PowerShell Version, as 5.1 is needed
 $PowerShellVersion = $PSVersionTable.PSVersion
@@ -23,4 +37,73 @@ if ($release -gt 461808) {
 }
 
 #Check execution policy for current session
-Get-ExecutionPolicy
+$ExPolicy = Get-ExecutionPolicy
+
+switch ($ExPolicy) {
+    "Unrestricted" {
+        Write-Host -ForegroundColor Green "Execution policy is Unrestricted"
+    }
+    "Bypass" {
+        Write-Host -ForegroundColor Green "Execution policy is Bypass"
+    }
+    "RemoteSigned" {
+        Write-Host -ForegroundColor Green "Execution policy is RemoteSigned"
+    }
+    "Restricted" {
+        Write-Host -ForegroundColor Yellow "Execution policy is Restricted"
+        Write-Host -ForegroundColor Cyan "Changing to Unrestricted"
+        Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+    }
+    "AllSigned" {
+        Write-Host -ForegroundColor Yellow "Execution policy is AllSigned"
+        Write-host -ForegroundColor Yellow "Changing to Unrestricted"
+        Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+    }
+    "Default" {
+        Write-Host -ForegroundColor Yellow "Execution policy is Default"
+        Write-Host -ForegroundColor Cyan "Changing to Unrestricted"
+        Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+    }
+    default {
+        Write-Host -ForegroundColor Yellow "Execution policy is $($ExPolicy)"
+    }
+}
+
+#Check the Microsoft Graph PowerShell SDK installation
+$IsGraphSdkInstalled = Get-InstalledModule Microsoft.Graph -ErrorAction SilentlyContinue
+$GraphBetaNeeded = Read-Host "Do you need the Microsoft Graph Beta module? (Y/N)"
+$IsGraphSdkBetaInstalled = Get-InstalledModule Microsoft.Graph.Beta -ErrorAction SilentlyContinue
+
+Write-Host -ForegroundColor Blue "Checking Microsoft Graph PowerShell SDK installation..."
+if (!$IsGraphSdkInstalled) {
+    Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force
+}
+
+if ($GraphBetaNeeded -eq "Y" -and !$IsGraphSdkBetaInstalled) {
+    Install-Module Microsoft.Graph.Beta -Scope AllUsers -Repository PSGallery -Force
+}
+
+#Validation
+[version]$CurrentGraphVersion = (Get-InstalledModule Microsoft.Graph -ErrorAction Stop).Version
+[version]$LatestGraphVersion = (Find-Module -Name Microsoft.Graph -Repository PSGallery -ErrorAction Stop).Version
+
+# Compare major and minor versions only; patch and build differences are ignored.
+[version]$CurrentMajorMinor = "$($CurrentGraphVersion.Major).$($CurrentGraphVersion.Minor)"
+[version]$LatestMajorMinor = "$($LatestGraphVersion.Major).$($LatestGraphVersion.Minor)"
+
+Write-Host -ForegroundColor Blue "Current Microsoft Graph PowerShell SDK version: $CurrentGraphVersion"
+Write-Host -ForegroundColor Blue "Latest Microsoft Graph PowerShell SDK version: $LatestGraphVersion"
+
+#Compare versions
+if ($CurrentMajorMinor -ge $LatestMajorMinor) {
+    Write-Host -ForegroundColor Green "Microsoft Graph PowerShell SDK is up to date"
+} else {
+    Write-Host -ForegroundColor Yellow "Microsoft Graph PowerShell SDK is out of date"
+    $WantToUpdateGraph = Read-Host "Do you want to update the Microsoft Graph PowerShell SDK? (Y/N)"
+    $WantToUpdate = $WantToUpdateGraph.ToUpper()
+}
+
+if ($WantToUpdate -eq "Y") {
+    Write-Host -ForegroundColor Blue "Updating Microsoft Graph PowerShell SDK..."
+    Update-Module Microsoft.Graph
+}
