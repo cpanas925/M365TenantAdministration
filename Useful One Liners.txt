@@ -1,0 +1,29 @@
+Connect-MgGraph
+
+Install-Module microsoft.graph -scope currentuser -Repository PSGallery -force
+Install-Module microsoft.graph.beta -scope currentuser -Repository PSGallery -force
+
+-Verify Installed Version
+Get-InstalledModule Microsoft.Graph
+
+-Verify installed submodules and their versions
+Get-InstalledModule
+
+-Update SDK
+Update-Module Microsoft.Graph
+
+-Uninstall SDK
+Uninstall-Module Microsoft.Graph -AllVersions
+-or
+Get-InstalledModule Microsoft.Graph.* | ? Name -ne "Microsoft.Graph.Authentication" | Uninstall-Module -AllVersions
+Uninstall-Module Microsoft.Graph.Authentication -AllVersions
+
+
+
+Find-MgGraphCommand -command Get-MgUser | Select -First 1 -ExpandProperty Permissions
+
+- Find user with email that ends with
+Get-MgUser -Filter "endswith(mail,'s@granite.tech')" -Sort "userPrincipalName" -CountVariable CountVar  -ConsistencyLevel eventual
+
+-Find users with mail that contains
+Get-MgUser -Search '"displayName:chris"' -Sort "displayName" -CountVariable CountVar  -ConsistencyLevel eventual
