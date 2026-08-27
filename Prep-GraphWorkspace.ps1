@@ -52,17 +52,17 @@ switch ($ExPolicy) {
     "Restricted" {
         Write-Host -ForegroundColor Yellow "Execution policy is Restricted"
         Write-Host -ForegroundColor Cyan "Changing to Unrestricted"
-        Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+        Set-ExecutionPolicy Unrestricted
     }
     "AllSigned" {
         Write-Host -ForegroundColor Yellow "Execution policy is AllSigned"
         Write-host -ForegroundColor Yellow "Changing to Unrestricted"
-        Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+        Set-ExecutionPolicy Unrestricted
     }
     "Default" {
         Write-Host -ForegroundColor Yellow "Execution policy is Default"
         Write-Host -ForegroundColor Cyan "Changing to Unrestricted"
-        Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+        Set-ExecutionPolicy Unrestricted
     }
     default {
         Write-Host -ForegroundColor Yellow "Execution policy is $($ExPolicy)"
@@ -72,15 +72,19 @@ switch ($ExPolicy) {
 #Check the Microsoft Graph PowerShell SDK installation
 $IsGraphSdkInstalled = Get-InstalledModule Microsoft.Graph -ErrorAction SilentlyContinue
 $GraphBetaNeeded = Read-Host "Do you need the Microsoft Graph Beta module? (Y/N)"
-$IsGraphSdkBetaInstalled = Get-InstalledModule Microsoft.Graph.Beta -ErrorAction SilentlyContinue
+$GraphBetaNeeded = $GraphBetaNeeded.ToUpper()
 
 Write-Host -ForegroundColor Blue "Checking Microsoft Graph PowerShell SDK installation..."
 if (!$IsGraphSdkInstalled) {
-    Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force
+    Write-Host -ForegroundColor Yellow "Microsoft Graph PowerShell SDK is not installed"
+    Write-Host -ForegroundColor Blue "Installing Microsoft Graph PowerShell SDK..."
+    Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force -Verbose -AllowClobber
 }
 
+$IsGraphSdkBetaInstalled = Get-InstalledModule Microsoft.Graph.Beta -ErrorAction SilentlyContinue
 if ($GraphBetaNeeded -eq "Y" -and !$IsGraphSdkBetaInstalled) {
-    Install-Module Microsoft.Graph.Beta -Scope AllUsers -Repository PSGallery -Force
+    Write-Host -ForegroundColor Blue "Installing Microsoft Graph PowerShell SDK Beta..."
+    Install-Module Microsoft.Graph.Beta -Scope AllUsers -Repository PSGallery -Force -Verbose -AllowClobber
 }
 
 #Validation
@@ -105,5 +109,12 @@ if ($CurrentMajorMinor -ge $LatestMajorMinor) {
 
 if ($WantToUpdate -eq "Y") {
     Write-Host -ForegroundColor Blue "Updating Microsoft Graph PowerShell SDK..."
-    Update-Module Microsoft.Graph
+    Update-Module Microsoft.Graph -Verbose -Scope AllUsers -AllowClobber
+    if ($GraphBetaNeeded -eq "Y") {
+        Update-Module Microsoft.Graph.Beta -Verbose -Scope AllUsers -AllowClobber
+    }
 }
+
+#Uninstall-Module Microsoft.Graph -AllVersions
+#Uninstall-Module Microsoft.Graph.Beta -AllVersions
+
