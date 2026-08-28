@@ -114,7 +114,3 @@ if ($WantToUpdate -eq "Y") {
         Update-Module Microsoft.Graph.Beta -Verbose -Scope AllUsers
     }
 }
-
-#Uninstall-Module Microsoft.Graph -AllVersions
-#Uninstall-Module Microsoft.Graph.Beta -AllVersions
-
