@@ -1,3 +1,8 @@
+[CmdletBinding()]
+param (
+    [string]$SkipBetaCheck
+)
+
 ##Prerequisites
 Write-Host -ForegroundColor Blue "Setting up prerequisites for Microsoft Graph PowerShell SDK"
 
@@ -10,20 +15,43 @@ if ($isAdmin) {
 }
 
 if (-not $isAdmin) {
-    Write-Host "Not running as Admin. Requesting elevation..." -ForegroundColor Yellow
     Write-Host "Please run this script as Administrator." -ForegroundColor Red
     Pause
     Exit
 }
 
-# Get the PowerShell Version, as 5.1 is needed
+# Get the PowerShell Version, as 7 is needed
 $PowerShellVersion = $PSVersionTable.PSVersion
 
-if ($PowerShellVersion.Major -ge "5" -and $PowerShellVersion.Minor -ge "1") {
-    Write-Host -ForegroundColor Green "PowerShell version is greater than version 5.1"
-} else {
-    Write-Host -ForegroundColor Yellow "PowerShell version is less than version 5.1"
-    break
+if ($PowerShellVersion.Major -ge 7) {
+    Write-Host -ForegroundColor Green "PowerShell version $($PowerShellVersion.ToString()) is installed (version 7 or greater)"
+}elseif ($PwshCommand = Get-Command pwsh -ErrorAction SilentlyContinue) {
+    Write-Host -ForegroundColor Green "PowerShell 7 (pwsh) is available: $($PwshCommand.Source)"
+    Write-Host -ForegroundColor Cyan "Switching to PowerShell 7..."
+    $ScriptFullPath = $PSCommandPath
+    pwsh -File $ScriptFullPath -SkipBetaCheck:$true
+}else {
+    Write-Host -ForegroundColor Yellow "PowerShell version $($PowerShellVersion.ToString()) is less than version 7"
+
+    # Prompt the user to confirm installation
+    $title = "Install PowerShell 7"
+    $message = "PowerShell 7 is not currently installed (detected version $($PowerShellVersion.ToString())). Would you like to install it now using winget?"
+    $yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Install PowerShell 7 via winget."
+    $no = New-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not install PowerShell 7."
+    $options = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
+    $result = $host.ui.PromptForChoice($title, $message, $options, 0)
+
+    if ($result -eq 0) {
+        Write-Host -ForegroundColor Cyan "Installing PowerShell 7 via winget..."
+        winget install --id Microsoft.PowerShell --source winget --accept-source-agreements --accept-package-agreements
+        Write-Host -ForegroundColor Green "PowerShell 7 installation complete. Switching to PowerShell 7."
+        $ScriptFullPath = $PSCommandPath
+        pwsh -File $ScriptFullPath -SkipBetaCheck:$SkipBetaCheck
+        exit
+    } else {
+        Write-Host -ForegroundColor Yellow "Installation cancelled by user."
+        exit
+    }
 }
 
 # Get the .NET Framework Version, as 4.7.2 is needed
@@ -33,7 +61,8 @@ if ($release -gt 461808) {
     Write-Host -ForegroundColor Green ".NET Framework is later than 4.7.2"
 } else {
     Write-Host -ForegroundColor Yellow ".NET Framework is 4.7.2 or earlier"
-    break
+    Write-Host -ForegroundColor Red "Required .NET Framework version is not met. Please install .NET Framework 4.7.2 or later."
+    exit
 }
 
 #Check execution policy for current session
@@ -77,20 +106,22 @@ if (($env:PSModulePath -split ';')[0] -ne ("C:\Users\$env:USERNAME\Documents\Win
 
 #Check the Microsoft Graph PowerShell SDK installation
 $IsGraphSdkInstalled = Get-InstalledModule Microsoft.Graph -ErrorAction SilentlyContinue
-$GraphBetaNeeded = Read-Host "Do you need the Microsoft Graph Beta module? (Y/N)"
-$GraphBetaNeeded = $GraphBetaNeeded.ToUpper()
+if (!$SkipBetaCheck) {
+    $GraphBetaNeeded = Read-Host "Do you need the Microsoft Graph Beta module? (Y/N)"
+    $GraphBetaNeeded = $GraphBetaNeeded.ToUpper()
+}
 
 Write-Host -ForegroundColor Blue "Checking Microsoft Graph PowerShell SDK installation..."
 if (!$IsGraphSdkInstalled) {
     Write-Host -ForegroundColor Yellow "Microsoft Graph PowerShell SDK is not installed"
     Write-Host -ForegroundColor Blue "Installing Microsoft Graph PowerShell SDK..."
-    Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force -Verbose
+    Install-Module Microsoft.Graph -Scope AllUsers -Repository PSGallery -Force -AllowClobber -Verbose
 }
 
 $IsGraphSdkBetaInstalled = Get-InstalledModule Microsoft.Graph.Beta -ErrorAction SilentlyContinue
-if ($GraphBetaNeeded -eq "Y" -and !$IsGraphSdkBetaInstalled) {
+if ($GraphBetaNeeded -eq "Y" -and !$IsGraphSdkBetaInstalled -and !$SkipBetaCheck) {
     Write-Host -ForegroundColor Blue "Installing Microsoft Graph PowerShell SDK Beta..."
-    Install-Module Microsoft.Graph.Beta -Scope AllUsers -Repository PSGallery -Force -Verbose
+    Install-Module Microsoft.Graph.Beta -Scope AllUsers -Repository PSGallery -Force -AllowClobber -Verbose
 }
 
 #Validation
@@ -115,8 +146,8 @@ if ($CurrentMajorMinor -ge $LatestMajorMinor) {
 
 if ($WantToUpdate -eq "Y") {
     Write-Host -ForegroundColor Blue "Updating Microsoft Graph PowerShell SDK..."
-    Update-Module Microsoft.Graph -Verbose -Scope AllUsers
+    Update-Module Microsoft.Graph -AllowClobber -Verbose -Scope AllUsers
     if ($GraphBetaNeeded -eq "Y") {
-        Update-Module Microsoft.Graph.Beta -Verbose -Scope AllUsers
+        Update-Module Microsoft.Graph.Beta -AllowClobber -Verbose -Scope AllUsers
     }
 }
