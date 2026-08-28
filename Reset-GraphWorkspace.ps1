@@ -18,3 +18,9 @@ foreach ($p in $paths) {
             }
     }
 }
+
+#Prepend Local Documents Folder for modules first.
+if (($env:PSModulePath -split ';')[0] -ne ("C:\Users\$env:USERNAME\Documents\WindowsPowerShell\Modules")) {
+    Write-Host -ForegroundColor Blue "PSModulePath is not correctly configured. Prepending local modules folder."
+    $env:PSModulePath = "C:\Users\$env:USERNAME\Documents\WindowsPowerShell\Modules;" + $env:PSModulePath
+}

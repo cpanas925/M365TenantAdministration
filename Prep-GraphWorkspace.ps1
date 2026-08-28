@@ -69,6 +69,12 @@ switch ($ExPolicy) {
     }
 }
 
+#Prepend Local Documents Folder for modules first.
+if (($env:PSModulePath -split ';')[0] -ne ("C:\Users\$env:USERNAME\Documents\WindowsPowerShell\Modules")) {
+    Write-Host -ForegroundColor Blue "PSModulePath is not correctly configured. Prepending local modules folder."
+    $env:PSModulePath = "C:\Users\$env:USERNAME\Documents\WindowsPowerShell\Modules;" + $env:PSModulePath
+}
+
 #Check the Microsoft Graph PowerShell SDK installation
 $IsGraphSdkInstalled = Get-InstalledModule Microsoft.Graph -ErrorAction SilentlyContinue
 $GraphBetaNeeded = Read-Host "Do you need the Microsoft Graph Beta module? (Y/N)"
