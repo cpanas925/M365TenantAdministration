@@ -9,8 +9,15 @@ if (!(Get-Module -Name Microsoft.Graph.Authentication)) {
     Import-Module -Global Microsoft.Graph.Authentication
 }
 
+
 #Collect Managed Tenants
-Connect-MgGraph -Scopes "ManagedTenants.Read.All"
+#$TenantId = "735bcdb1-220c-47df-9e41-6a2552e729d8"
+#Connect-MgGraph -TenantId $TenantId -ContextScope CurrentUser -Scopes "Directory.Read.All" #Change as needed, sufficient for initial authentication
+
+$TestTenantId = '<TENANT_ID>'
+Connect-MgGraph -TenantId $TestTenantId -ContextScope CurrentUser -Scopes "Directory.Read.All" #Change as needed, sufficient for initial authentication
+
+
 
 #Figure out what the user needs to administer
 
