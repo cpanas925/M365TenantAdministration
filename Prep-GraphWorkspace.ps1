@@ -146,8 +146,8 @@ if ($CurrentMajorMinor -ge $LatestMajorMinor) {
 
 if ($WantToUpdate -eq "Y") {
     Write-Host -ForegroundColor Blue "Updating Microsoft Graph PowerShell SDK..."
-    Update-Module Microsoft.Graph -AllowClobber -Verbose -Scope AllUsers
+    Update-Module Microsoft.Graph -Verbose -Scope AllUsers
     if ($GraphBetaNeeded -eq "Y") {
-        Update-Module Microsoft.Graph.Beta -AllowClobber -Verbose -Scope AllUsers
+        Update-Module Microsoft.Graph.Beta -Verbose -Scope AllUsers
     }
 }
